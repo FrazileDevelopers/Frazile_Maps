@@ -45,6 +45,7 @@ class _MapsState extends State<Maps> {
   Position position;
   Widget _child = Container();
   String _resultAddress = '';
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -61,15 +62,25 @@ class _MapsState extends State<Maps> {
     var isGpsEnabled = await Geolocator().isLocationServiceEnabled();
     print('isGPSEnabled = ' + isGpsEnabled.toString());
     if (isGpsEnabled) {
+      setState(() {
+        _isLoading = true;
+      });
       Position res = await Geolocator()
           .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       await getSetAddress(Coordinates(res.latitude, res.longitude));
       setState(() {
+        _isLoading = false;
         position = res;
         _child = mapWidget();
       });
     } else {
+      setState(() {
+        _isLoading = true;
+      });
       _checkGps();
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -116,32 +127,36 @@ class _MapsState extends State<Maps> {
           title: Text('Frazile Maps'),
           centerTitle: true,
         ),
-        body: Stack(
-          children: [
-            _child,
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Container(
-                alignment: Alignment.center,
-                width: MediaQuery.of(context).size.width * .99,
-                height: MediaQuery.of(context).size.height * .12,
-                decoration: BoxDecoration(
-                  color: Colors.pink,
-                  borderRadius: BorderRadius.circular(
-                    10.0,
+        body: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(),
+              )
+            : Stack(
+                children: [
+                  _child,
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: MediaQuery.of(context).size.width * .99,
+                      height: MediaQuery.of(context).size.height * .12,
+                      decoration: BoxDecoration(
+                        color: Colors.pink,
+                        borderRadius: BorderRadius.circular(
+                          10.0,
+                        ),
+                      ),
+                      child: Text(
+                        _resultAddress,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.courierPrime(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                child: Text(
-                  _resultAddress,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.courierPrime(
-                    color: Colors.white,
-                  ),
-                ),
+                ],
               ),
-            ),
-          ],
-        ),
       );
 
   Widget mapWidget() => GoogleMap(
@@ -157,6 +172,11 @@ class _MapsState extends State<Maps> {
         onMapCreated: (GoogleMapController controller) {
           _controller = controller;
         },
+        scrollGesturesEnabled: true,
+        trafficEnabled: true,
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        zoomControlsEnabled: false,
       );
 
   Set<Marker> _createMarker() => <Marker>[
@@ -168,7 +188,7 @@ class _MapsState extends State<Maps> {
             position.latitude,
             position.longitude,
           ),
-          icon: BitmapDescriptor.defaultMarker,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
           infoWindow: InfoWindow(
             title: 'Work',
           ),
