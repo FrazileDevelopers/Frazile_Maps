@@ -1,10 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:geocoder/geocoder.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-void main() => runApp(FzMaps());
+void main() {
+  // GoogleMap.init('AIzaSyB8iXVlMJLUZK3Y25vgI5M0zBOm3m0LqaE');
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(FzMaps());
+}
 
 class FzMaps extends StatelessWidget {
   @override
@@ -36,7 +40,8 @@ class _MapsState extends State<Maps> {
 
   GoogleMapController _controller;
   Position position;
-  Widget _child;
+  Widget _child = Container();
+  String _resultAddress = '';
 
   @override
   void initState() {
@@ -52,10 +57,20 @@ class _MapsState extends State<Maps> {
   }
 
   void getCurrentLocation() async {
-    Position res = await Geolocator().getCurrentPosition();
+    Position res = await Geolocator()
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    await getSetAddress(Coordinates(res.latitude, res.longitude));
     setState(() {
       position = res;
       _child = mapWidget();
+    });
+  }
+
+  getSetAddress(Coordinates coordinates) async {
+    final addresses =
+        await Geocoder.local.findAddressesFromCoordinates(coordinates);
+    setState(() {
+      _resultAddress = addresses.first.addressLine;
     });
   }
 
@@ -65,7 +80,32 @@ class _MapsState extends State<Maps> {
           title: Text('Frazile Maps'),
           centerTitle: true,
         ),
-        body: _child,
+        body: Stack(
+          children: [
+            _child,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                alignment: Alignment.center,
+                width: MediaQuery.of(context).size.width * .99,
+                height: MediaQuery.of(context).size.height * .12,
+                decoration: BoxDecoration(
+                  color: Colors.pink,
+                  borderRadius: BorderRadius.circular(
+                    10.0,
+                  ),
+                ),
+                child: Text(
+                  _resultAddress,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.courierPrime(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
 
   Widget mapWidget() => GoogleMap(
@@ -76,7 +116,7 @@ class _MapsState extends State<Maps> {
             position.latitude,
             position.longitude,
           ),
-          zoom: 12.0,
+          zoom: 17.0,
         ),
         onMapCreated: (GoogleMapController controller) {
           _controller = controller;
