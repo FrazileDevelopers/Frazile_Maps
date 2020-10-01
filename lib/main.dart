@@ -1,8 +1,11 @@
+import 'package:android_intent/android_intent.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoder/geocoder.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   // GoogleMap.init('AIzaSyB8iXVlMJLUZK3Y25vgI5M0zBOm3m0LqaE');
@@ -45,25 +48,58 @@ class _MapsState extends State<Maps> {
 
   @override
   void initState() {
-    // TODO: implement initState
     getCurrentLocation();
     super.initState();
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
   }
 
   void getCurrentLocation() async {
-    Position res = await Geolocator()
-        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    await getSetAddress(Coordinates(res.latitude, res.longitude));
-    setState(() {
-      position = res;
-      _child = mapWidget();
-    });
+    var isGpsEnabled = await Geolocator().isLocationServiceEnabled();
+    print('isGPSEnabled = ' + isGpsEnabled.toString());
+    if (isGpsEnabled) {
+      Position res = await Geolocator()
+          .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      await getSetAddress(Coordinates(res.latitude, res.longitude));
+      setState(() {
+        position = res;
+        _child = mapWidget();
+      });
+    } else {
+      _checkGps();
+    }
+  }
+
+  /*Show dialog if GPS not enabled and open settings location*/
+  Future _checkGps() async {
+    if (!(await Geolocator().isLocationServiceEnabled())) {
+      if (Theme.of(context).platform == TargetPlatform.android) {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("Can't get gurrent location"),
+                content:
+                    const Text('Please make sure you enable GPS and try again'),
+                actions: <Widget>[
+                  FlatButton(
+                      child: Text('OK'),
+                      onPressed: () {
+                        final AndroidIntent intent = AndroidIntent(
+                            action:
+                                'android.settings.LOCATION_SOURCE_SETTINGS');
+                        intent.launch();
+                        Navigator.of(context, rootNavigator: true).pop();
+                        getCurrentLocation();
+                      })
+                ],
+              );
+            });
+      }
+    }
   }
 
   getSetAddress(Coordinates coordinates) async {

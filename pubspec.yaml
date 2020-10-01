@@ -17,6 +17,8 @@ dependencies:
   geocoding: ^1.0.4+1
   geocoding_platform_interface: ^1.0.1+1
   geocoder: ^0.2.1
+  permission_handler: ^5.0.1+1
+  android_intent: ^0.3.7+4
 
 dev_dependencies:
   flutter_test:
